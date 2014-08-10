@@ -1,3 +1,15 @@
+/*!
+ * Plugin for MediaElement.js to provide a synchronized transcript.
+ *
+ * Features:
+ *   - Highlight word/phrase in transcript as audio/video is played,
+ *   - Search for word, and seek to that point in media,
+ *   - Click on word/phrase to jump to that point in media (in PROGRESS).
+ *
+ * mep-feature-timedtranscript.js (Requires: mep-feature-tracks.js)
+ *
+ * Copyright (c) 2014-06-26 Nick Freear.
+ */
 /*global mejs:false, MediaElementPlayer:false */
 
 (function($) {
@@ -20,7 +32,7 @@
 
 	$.extend(MediaElementPlayer.prototype, {
 
-		buildtranscript: function(player, controls, layers, media) {
+		buildtimedtranscript: function(player, controls, layers, media) {
 			if (player.tracks.length === 0) {
 				return;
 			}
@@ -32,6 +44,7 @@
 
 			the_media = media;
 			// TODO: select the correct "subtitles" track!!
+			// http://w3.org/TR/html5/embedded-content-0.html#the-track-element
 			the_track = player.tracks[ 0 ];
 
 			log('Transcript..');
@@ -43,6 +56,11 @@
 				$('form', $transcript).on('submit', function (ev) {
 					ev.preventDefault();
 					var q = $(".q", $transcript).val();
+					player.searchTranscript(q);
+				});
+
+				$('[role=button]', $transcript).on('click', function () {
+					var q = $(this, $transcript).text();
 					player.searchTranscript(q);
 				});
 			}, 500);
@@ -58,10 +76,6 @@
 
 		loadTranscript: function () {
 
-			/*if (typeof this.tracks == 'undefined')
-				return;
-			*/
-
 			var
 				t = this,
 				i,
@@ -76,12 +90,13 @@
 			log(track.entries);
 
 			$transcript.append(
-			'<form><input class=q placeholder="' + label + '" aria-label="' + label + '"><input type="submit"></form>'
+			'<form><input class=q placeholder="' + label + '" aria-label="' +
+			 label + '"><input type="submit"></form>'
 			);
 
 			for (i=0; i < texts.length; i++) {
 				$transcript.append(
-				'<span class="tr-' + i + '">' + texts[i] + '</span> '
+				'<span class="tr-' + i + '" tabindex=0 role=button >' + texts[i] + '</span> '
 				);
 				//log(track.entries.text[i]);
 			}
@@ -124,6 +139,7 @@
 			var
 				t = this,
 				i,
+				re = new RegExp(query, 'i'),
 				track = the_track,
 				$transcript = $(t.options.transcriptSelector),
 				$tr;
@@ -131,7 +147,7 @@
 			log("Search:", query);
 
 			for (i=0; i < track.entries.times.length; i++) {
-				if (track.entries.text[i].match(query)) {
+				if (track.entries.text[i].match(re)) {
 					$tr = $(".tr-" + i, $transcript);
 					$tr.addClass("hi hiq");
 
@@ -141,7 +157,10 @@
 					the_media.pause();
 					the_media.setCurrentTime(track.entries.times[i].start);
 
-					return;
+					//return;
+				} else {
+					$tr = $(".tr-" + i, $transcript);
+					$tr.removeClass("hi");
 				}
 			}
 		}
