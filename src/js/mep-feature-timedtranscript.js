@@ -4,7 +4,15 @@
  * Features:
  *   - Highlight word/phrase in transcript as audio/video is played,
  *   - Search for word, and seek to that point in media,
- *   - Click on word/phrase to jump to that point in media (in PROGRESS).
+ *   - Click on word/phrase to jump to that point in media (in PROGRESS),
+ *   - Auto-scroll of the transcript as media plays (in PROGRESS).
+ *
+ * TODOs: 
+ *   - Select the "correct" captions/subtitles track,
+ *   - Reduce the update frequency - auto-scroll bugs?
+ *   - Transcript positioning and show/hide.
+ *
+ * http://w3.org/TR/html5/embedded-content-0.html#the-track-element
  *
  * mep-feature-timedtranscript.js (Requires: mep-feature-tracks.js)
  *
@@ -18,9 +26,9 @@
 
 	var	$transcript,
 		the_track,
-		//the_media,
 		last_idx = 0,
-		search_idx;
+		search_idx,
+		auto_scroll;
 
 
 	// add extra default options 
@@ -30,7 +38,9 @@
 		transcriptSearchText: mejs.i18n.t('Search script'),
 
 		// #id or .class		
-		transcriptSelector: ''
+		transcriptSelector: '',
+
+		transcriptScroll: true
 	});
 
 
@@ -45,10 +55,9 @@
 
 			$transcript = $(t.options.transcriptSelector)
 				.addClass("mejs-timedtranscript");
-			//the_media = media;
 			// TODO: select the correct "subtitles" track!
-			// http://w3.org/TR/html5/embedded-content-0.html#the-track-element
 			the_track = player.tracks[ 0 ];
+			auto_scroll = t.options.transcriptScroll;
 
 			log('Transcript..');
 			log(player.tracks);
@@ -115,7 +124,7 @@
 				t = this,
 				i,
 				track = the_track,  //t.selectedTrack
-				currentTime = t.media.currentTime,  //the_media,
+				currentTime = t.media.currentTime,
 				times = track.entries.times,
 				$tr;
 
@@ -127,17 +136,17 @@
 
 				if (currentTime >= times[i].start && currentTime <= times[i].stop) {
 					$tr.addClass("hi");
+					scrollToElement($tr);
 
 					last_idx = i;
 				} else {
 					$tr.removeClass("hi");
 				}
 			}
-
-			//log('Update 2');
 		},
 
 
+		// Currently a naive case-insensitive search.
 		searchTranscript: function (query) {
 			var
 				t = this,
@@ -168,6 +177,21 @@
 		}
 
 	});
+
+	//Inspired: http://stackoverflow.com/questions/19498517/javascript-scroll-to-div-with-animation
+	var scrollToElement = function(el, ms){
+		//$transcript.scrollTo(el); return;
+
+		if (!auto_scroll) return;
+
+		$transcript.css("position", "relative");
+
+		var speed = (ms) ? ms : 600;
+		log("Scroll", $(el).position().top);
+		$transcript.animate({  //Was: $('html,body')
+			scrollTop: $(el).position().top  //$(el).offset().top
+		}, speed);
+	}
 
 	function log(s) {
 		window.console && console.log(arguments.length > 1 ? arguments : s);
