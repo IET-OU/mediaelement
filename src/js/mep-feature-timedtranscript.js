@@ -1,5 +1,5 @@
 /*!
- * Plugin for MediaElement.js to provide a synchronized transcript.
+ * Plugin extension for MediaElement.js to provide a synchronized transcript.
  *
  * Features:
  *   - Highlight word/phrase in transcript as audio/video is played,
@@ -10,20 +10,24 @@
  *
  * Copyright (c) 2014-06-26 Nick Freear.
  */
+
 /*global mejs:false, MediaElementPlayer:false */
+
 
 (function($) {
 
-	var the_track,
+	var	$transcript,
+		the_track,
 		the_media,
 		last_idx = 0,
 		search_idx;
 
+
 	// add extra default options 
 	$.extend(mejs.MepDefaults, {
 
-		transcriptText: mejs.i18n.t('Text transcript'),
-		transcriptSearchText: mejs.i18n.t('Search transcript'),
+		transcriptText: mejs.i18n.t('Seekable text script'),
+		transcriptSearchText: mejs.i18n.t('Search script'),
 
 		// #id or .class		
 		transcriptSelector: ''
@@ -32,24 +36,23 @@
 
 	$.extend(MediaElementPlayer.prototype, {
 
-		buildtimedtranscript: function(player, controls, layers, media) {
+		buildtimedtranscript: function (player, controls, layers, media) {
 			if (player.tracks.length === 0) {
 				return;
 			}
 
-			var t = this, 
-				i, 
-				options = '',
-				$transcript = $(t.options.transcriptSelector);
+			var t = this;
 
+			$transcript = $(t.options.transcriptSelector);
 			the_media = media;
-			// TODO: select the correct "subtitles" track!!
+			// TODO: select the correct "subtitles" track!
 			// http://w3.org/TR/html5/embedded-content-0.html#the-track-element
 			the_track = player.tracks[ 0 ];
 
 			log('Transcript..');
 			log(player.tracks);
 
+			// TODO: need a "tracksloaded" event!
 			setTimeout(function () {
 				player.loadTranscript();
 
@@ -63,14 +66,14 @@
 					var q = $(this, $transcript).text();
 					player.searchTranscript(q);
 				});
-			}, 500);
+
+				log('transcript loaded');
+			}, 800);
 
 
-			media.addEventListener('timeupdate', function (e) {
+			media.addEventListener('timeupdate', function (ev) {
 				player.updateTranscriptText();
 			}, false);
-			
-			log('build transcript');
 		},
 
 
@@ -79,19 +82,20 @@
 			var
 				t = this,
 				i,
-				label = t.options.transcriptSearchText,
+				slabel = t.options.transcriptSearchText,
+				tlabel = t.options.transcriptText,
 				track = the_track, //track = t.selectedTrack,
-				texts = track.entries.text,
-				$transcript = $(t.options.transcriptSelector);
-
-			//the_track = track;
+				texts = track.entries.text;
 
 			log($transcript);
 			log(track.entries);
 
+			$transcript.addClass('mejs-timedtranscript')
+				.attr('aria-label', tlabel);
+
 			$transcript.append(
-			'<form><input class=q placeholder="' + label + '" aria-label="' +
-			 label + '"><input type="submit"></form>'
+				'<form><input class="q" placeholder="' + slabel + '" aria-label="' +
+				slabel + '"><input type="submit"></form>'
 			);
 
 			for (i=0; i < texts.length; i++) {
@@ -110,7 +114,6 @@
 				i,
 				track = the_track, //t.selectedTrack;
 				times = track.entries.times,
-				$transcript = $(t.options.transcriptSelector),
 				$tr, $last, $seek;
 
 			log("Update transcript");
@@ -141,21 +144,22 @@
 				i,
 				re = new RegExp(query, 'i'),
 				track = the_track,
-				$transcript = $(t.options.transcriptSelector),
+				media = the_media,
+				times = track.entries.times,
 				$tr;
 
 			log("Search:", query);
 
-			for (i=0; i < track.entries.times.length; i++) {
+			for (i=0; i < times.length; i++) {
 				if (track.entries.text[i].match(re)) {
 					$tr = $(".tr-" + i, $transcript);
-					$tr.addClass("hi hiq");
+					$tr.addClass("hi hiq").focus();
 
 					search_idx = i;
 
-					the_media.play();
-					the_media.pause();
-					the_media.setCurrentTime(track.entries.times[i].start);
+					media.play();
+					media.pause();
+					media.setCurrentTime(times[i].start);
 
 					//return;
 				} else {
