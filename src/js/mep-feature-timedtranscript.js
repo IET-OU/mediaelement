@@ -18,7 +18,7 @@
 
 	var	$transcript,
 		the_track,
-		the_media,
+		//the_media,
 		last_idx = 0,
 		search_idx;
 
@@ -43,8 +43,9 @@
 
 			var t = this;
 
-			$transcript = $(t.options.transcriptSelector);
-			the_media = media;
+			$transcript = $(t.options.transcriptSelector)
+				.addClass("mejs-timedtranscript");
+			//the_media = media;
 			// TODO: select the correct "subtitles" track!
 			// http://w3.org/TR/html5/embedded-content-0.html#the-track-element
 			the_track = player.tracks[ 0 ];
@@ -56,12 +57,14 @@
 			setTimeout(function () {
 				player.loadTranscript();
 
+				// Search.
 				$('form', $transcript).on('submit', function (ev) {
 					ev.preventDefault();
 					var q = $(".q", $transcript).val();
 					player.searchTranscript(q);
 				});
 
+				// Click on text to seek.
 				$('[role=button]', $transcript).on('click', function () {
 					var q = $(this, $transcript).text();
 					player.searchTranscript(q);
@@ -90,8 +93,7 @@
 			log($transcript);
 			log(track.entries);
 
-			$transcript.addClass('mejs-timedtranscript')
-				.attr('aria-label', tlabel);
+			$transcript.attr('aria-label', tlabel);
 
 			$transcript.append(
 				'<form><input class="q" placeholder="' + slabel + '" aria-label="' +
@@ -112,25 +114,23 @@
 			var
 				t = this,
 				i,
-				track = the_track, //t.selectedTrack;
+				track = the_track,  //t.selectedTrack
+				currentTime = t.media.currentTime,  //the_media,
 				times = track.entries.times,
-				$tr, $last, $seek;
+				$tr;
 
 			log("Update transcript");
 			//log(track.entries);
 
 			for (i=0; i < times.length; i++) {
-				if (t.media.currentTime >= times[i].start && t.media.currentTime <= times[i].stop){
+				$tr = $(".tr-" + i, $transcript);
 
-					$last = $(".tr-" + (i - 1), $transcript);
-					$last.removeClass("hi");
-					$seek = $(".tr-" + search_idx, $transcript);
-					$seek.removeClass("hi");
-					$tr = $(".tr-" + i, $transcript);
+				if (currentTime >= times[i].start && currentTime <= times[i].stop) {
 					$tr.addClass("hi");
 
 					last_idx = i;
-					return; // exit out if one is visible;
+				} else {
+					$tr.removeClass("hi");
 				}
 			}
 
@@ -144,15 +144,16 @@
 				i,
 				re = new RegExp(query, 'i'),
 				track = the_track,
-				media = the_media,
+				media = t.media, //the_media,
 				times = track.entries.times,
 				$tr;
 
 			log("Search:", query);
 
 			for (i=0; i < times.length; i++) {
+				$tr = $(".tr-" + i, $transcript);
+
 				if (track.entries.text[i].match(re)) {
-					$tr = $(".tr-" + i, $transcript);
 					$tr.addClass("hi hiq").focus();
 
 					search_idx = i;
@@ -160,10 +161,7 @@
 					media.play();
 					media.pause();
 					media.setCurrentTime(times[i].start);
-
-					//return;
 				} else {
-					$tr = $(".tr-" + i, $transcript);
 					$tr.removeClass("hi");
 				}
 			}
