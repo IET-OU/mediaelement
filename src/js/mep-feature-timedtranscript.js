@@ -5,12 +5,14 @@
  *   - Highlight word/phrase in transcript as audio/video is played,
  *   - Search for word, and seek to that point in media,
  *   - Click on word/phrase to jump to that point in media (in PROGRESS),
- *   - Auto-scroll of the transcript as media plays (in PROGRESS).
+ *   - Auto-scroll of the transcript as media plays (in PROGRESS),
+ *   - Interim mechanism to identify a timed-transcript track, eg.
+ * <track kind="subtitles" srclang="en-GB-x-transcript" src="timedtranscript.vtt" />
+ *   - Control bar button to show/hide transcript panel.
  *
  * TODOs: 
- *   - Select the "correct" captions/subtitles track,
+ *   - Select the "correct" captions/subtitles track - "kind" attribute?
  *   - Reduce the update frequency - auto-scroll bugs?
- *   - Transcript positioning and show/hide.
  *
  * http://w3.org/TR/html5/embedded-content-0.html#the-track-element
  *
@@ -24,7 +26,11 @@
 
 (function($) {
 
-	var	$transcript,
+	var
+		// Interim solution to identify a timed-transcript track.
+		// https://tools.ietf.org/html/rfc5646#section-2.2.6
+		srclang_regexp = /(.+)-[xt]-transcript/,
+		$transcript,
 		the_track,
 		last_idx = 0,
 		search_idx,
@@ -40,7 +46,8 @@
 		// #id or .class		
 		transcriptSelector: '',
 
-		transcriptScroll: true
+		transcriptAutoScroll: true,
+		transcriptLoadShow: false
 	});
 
 
@@ -51,15 +58,32 @@
 				return;
 			}
 
-			var t = this;
+			var
+				t = this,
+				op = t.options,
+				lang = player.selectTranscript(),
+				$btn =
+				$('<div class="mejs-button mejs-transcript-button">' +
+					'<button type="button" aria-controls="' + t.id + '" title="' + op.transcriptText + '" aria-label="' + op.transcriptText + '"></button>' +
+				'</div>')
+				.appendTo(controls)
+				.click(function (ev) {
+					ev.preventDefault();
 
-			$transcript = $(t.options.transcriptSelector)
-				.addClass("mejs-timedtranscript");
-			// TODO: select the correct "subtitles" track!
-			the_track = player.tracks[ 0 ];
-			auto_scroll = t.options.transcriptScroll;
+					$transcript.toggle(200);
+				});
 
-			log('Transcript..');
+			$transcript = $(op.transcriptSelector)
+				.addClass("mejs-timedtranscript")
+				.attr("lang", lang);
+
+			if (!op.transcriptLoadShow) {
+				$transcript.hide();
+			}
+
+			auto_scroll = op.transcriptAutoScroll;
+
+			log('Timed transcript..');
 			log(player.tracks);
 
 			// TODO: need a "tracksloaded" event!
@@ -79,6 +103,13 @@
 					player.searchTranscript(q);
 				});
 
+
+				//TODO: fix to mejs-captions-selector
+				$(".mejs-captions-selector li").each(function () {
+					var $li = $(this);
+					$li.addClass($li.find("input").val());
+				});
+
 				log('transcript loaded');
 			}, 800);
 
@@ -88,6 +119,23 @@
 			}, false);
 		},
 
+		// Select the correct "subtitles" track!
+		selectTranscript: function () {
+			var
+				player = this,
+				track, i, lang_match;
+
+			for (i in player.tracks) {
+				track = player.tracks[ i ];
+				lang_match = track.srclang.match(srclang_regexp);
+				if (lang_match) {
+					the_track = track;
+					return lang_match[ 1 ];
+				}
+			}
+			// Else: a crude fallback!
+			the_track = player.tracks[ 0 ];
+		},
 
 		loadTranscript: function () {
 
@@ -95,17 +143,19 @@
 				t = this,
 				i,
 				slabel = t.options.transcriptSearchText,
-				tlabel = t.options.transcriptText,
 				track = the_track, //track = t.selectedTrack,
 				texts = track.entries.text;
 
 			log($transcript);
 			log(track.entries);
 
-			$transcript.attr('aria-label', tlabel);
+			$transcript.attr({
+				'aria-label': t.options.transcriptText,
+				'role': 'complementary'
+			});
 
 			$transcript.append(
-				'<form><input class="q" placeholder="' + slabel + '" aria-label="' +
+				'<form role="search"><input class="q" placeholder="' + slabel + '" aria-label="' +
 				slabel + '"><input type="submit"></form>'
 			);
 
