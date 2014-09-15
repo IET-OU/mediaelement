@@ -1,5 +1,5 @@
 /*!
- * Plugin extension for MediaElement.js to provide a synchronized transcript.
+ * Plugin extension for MediaElement.js to provide a time-synchronized transcript.
  *
  * Features:
  *   - Highlight word/phrase in transcript as audio/video is played,
@@ -10,7 +10,8 @@
  * <track kind="subtitles" srclang="en-GB-x-transcript" src="timedtranscript.vtt" />
  *   - Control bar button to show/hide transcript panel.
  *
- * TODOs: 
+ * TODOs:
+ *   - Move CSS to separate stylesheet(s) - where/packaged how?
  *   - Select the "correct" captions/subtitles track - "kind" attribute?
  *   - Reduce the update frequency - auto-scroll bugs?
  *
@@ -88,7 +89,9 @@
 
 			// TODO: need a "tracksloaded" event!
 			setTimeout(function () {
-				player.loadTranscript();
+				if (!player.loadTranscript()) {
+					return;
+				}
 
 				// Search.
 				$('form', $transcript).on('submit', function (ev) {
@@ -110,7 +113,7 @@
 					$li.addClass($li.find("input").val());
 				});
 
-				log('transcript loaded');
+				log('Transcript loaded');
 			}, 800);
 
 
@@ -146,6 +149,11 @@
 				track = the_track, //track = t.selectedTrack,
 				texts = track.entries.text;
 
+			if (!texts) {
+				log("ERROR: failed to load transcript. 404?", track);
+				return false;
+			}
+
 			log($transcript);
 			log(track.entries);
 
@@ -167,6 +175,7 @@
 			}
 
 			log(track);
+			return true;
 		},
 
 		updateTranscriptText: function () {

@@ -708,6 +708,30 @@
 }
 /* End: Track (Captions and Chapters) */
 
+
+/* Start: Timed Transcript */
+.mejs-controls .mejs-transcript-button button {
+	background-image: none;
+}
+
+.mejs-controls .mejs-transcript-button button:after {
+	content: "T";
+	color: #fff;
+	font: 16px "Times New Roman",serif;
+	display: block;
+	line-height: 16px;
+	height: 16px;
+	width: 16px;
+}
+
+/* Hide captions track selector. */
+.mejs-controls .mejs-captions-button .mejs-captions-selector
+	ul li[class *= "-x-transcript"] {
+	display: none;
+}
+/* End: Timed Transcript */
+
+
 /* Start: Error */
 .me-cannotplay {
 }
